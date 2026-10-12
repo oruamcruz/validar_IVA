@@ -1,0 +1,26 @@
+IVA ORIGEM	Descrição	VIROU	IVA + PIS/Cofins	Descrição			
+C0	Consumo: Sem Impostos 	 —> 	C$	Consumo: Sem Impostos somente CBS + IBS			
+C0(CZ)	Consumo: Sem Impostos 	 —> 	C@	Consumo: Sem Impostos + PIS/COFINS cumulativo			
+C1	(Consumo: ICMS + compl. ) 	 —> 	C#	Consumo: ICMS + compl.+ PIS/COFINS cumulativo			
+C1 	(Consumo: ICMS + compl. ) 	 —> 	 CL 	(Consumo: ICMS +compl. + PIS/Cofins)			
+C1 	(Consumo: ICMS + compl. ) 	 —> 	CG	(Consumo: ICMS + compl. (IBS/CBS)) 			
+C2 	(Consumo: ICMS + IPI) 	 —> 	CM 	(Consumo: ICMS + IPI + PIS/Cofins)			
+C4 	(Consumo : ICMS + ST)	 —> 	CN 	(Consumo : ICMS + ST + PIS/Cofins)			
+C5 	(Consumo : ICMS + IPI +ST.)	 —> 	CO 	(Consumo : ICMS + IPI +ST. + PIS/Cofins)			
+CA 	(Consumo: ICMS + IPI + CompICMS.) 	 —> 	CP 	Consumo: ICMS+IPI+CompICMS+PIS/Cofins n-cumulativo			
+CA 	(Consumo: ICMS + IPI + CompICMS.) 	 —> 	C, 	Consumo: ICMS+IPI+CompICMS+PIS/Cofins cumulativo			
+CC 	(Consumo: ICMS + DIFAL ICMS)	 —> 	CS	(Consumo: ICMS + DIFAL ICMS + PIS/Cofins)			
+CD	(Consumo: Sem impostos + DIFAL ICMS)	 —> 	CX	(Consumo: Sem impostos + DIFAL ICMS +PIS/COFIN)			
+CD	(Consumo: Sem impostos + DIFAL ICMS)	 —> 	C&	(Consumo: Sem impostos + DIFAL ICMS(IBS/CBS))			
+CE 	(Consumo: ICMS) 	 —> 	CQ 	(Consumo: ICMS + PIS/Cofins)			
+CE (CQ)	(Consumo: ICMS) 	 —> 	CY	Consumo: ICMS + PIS/Cofins cumulativo			
+CH	(Consumo: ST)	 —> 	CT	(Consumo: ST + PIS/Cofins)			
+CI 	(Consumo de ENERGIA: Sem Impostos)	 —> 	CV	(Consumo de ENERGIA: Sem Impostos + PIS/Cofins)			
+CN (C4)	Consumo : ICMS + ST 	 —> 	CW	Consumo : ICMS + ST (IBS/CBS)			
+J3	Serviços: Sem impostos.	 —> 	J4	Sem impostos.+ PIS/COFINS  não cumulativo			
+J3	Serviços: Sem impostos.	 —> 	J5	Sem impostos.+ PIS/COFINS cumulativo			
+C1	Consumo: ICMS + compl. 	 —> 	C#	Consumo: ICMS + compl. + PIS/COFINS Cumulativo			
+C0	Consumo: Sem Impostos 	 —> 	CZ	Consumo: Sem Impostos + PIS/COFINS			
+J1 	(Serviços: ISS + IRRF + CSRF) 	 —> 	J8	(Serviços: ISS + IRRF + CSRF + PIS/Cofins cumulativo)			
+CE	(Consumo: ICMS) 	 —> 	E1	(Consumo: ICMS + IBS/CBS )			
+J3	Serviços: Sem impostos.	 —> 	J6	Sem impostos.+ CBS/IBS			

@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Classificador de IVA</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.10.111/pdf.min.js"></script>
+<style>
+*{box-sizing:border-box}body{font-family:Segoe UI,Arial,sans-serif;max-width:1050px;margin:0 auto;padding:22px;background:#eef2f7;color:#243047}.panel{background:#fff;padding:24px;border-radius:14px;box-shadow:0 6px 24px #0001;margin-bottom:18px}h1{margin:0 0 8px}p{line-height:1.5}.muted{color:#627086}.upload{border:2px dashed #8b98aa;border-radius:12px;padding:26px;text-align:center;background:#f8fafc}input[type=file]{margin:12px 0;max-width:100%}input[type=password]{width:100%;padding:11px;border:1px solid #cbd5e0;border-radius:8px;margin-top:8px} .api-box{background:#f1f5f9;border-radius:10px;padding:14px;margin:16px 0;text-align:left}.status{padding:12px;border-radius:8px;margin-top:12px;background:#edf2f7}.error{background:#fee2e2;color:#991b1b}.success{background:#dcfce7;color:#166534}.hero{background:#373064;color:#fff;padding:22px;border-radius:12px;margin-bottom:18px}.code{font-size:44px;font-weight:800}.reason{font-size:17px}table{border-collapse:collapse;width:100%;margin-top:8px}td,th{text-align:left;padding:10px;border-bottom:1px solid #e4e8ef;vertical-align:top}th{background:#eef1f6}.pill{display:inline-block;padding:4px 9px;border-radius:20px;background:#e5e7eb}.warning{color:#92400e;background:#fef3c7;padding:12px;border-radius:8px}.small{font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere}
+</style></head><body>
+<div class="panel"><h1>Classificador de IVA</h1><p class="muted">Selecione um PDF, um XML ou ambos. O XML é usado para verificar a estrutura tributária; o PDF complementa a identificação e as retenções.</p>
+<div class="api-box"><label for="apiKey"><strong>Chave da API Google Gemini (opcional)</strong></label><input id="apiKey" type="password" autocomplete="off" placeholder="Cole aqui sua chave do Google AI Studio"><p class="muted" style="font-size:13px;margin-top:6px">A classificação pelas regras locais funciona sem chave. Se informar a chave, a aplicação também enviará uma amostra do documento ao Gemini para uma segunda opinião; evite usar dados confidenciais sem autorização.</p></div><div class="upload"><strong>Carregue a nota fiscal</strong><br><input id="files" type="file" multiple accept=".pdf,.xml,application/pdf,text/xml,application/xml"><p class="muted">A análise começa automaticamente quando você seleciona os arquivos.</p></div><div id="status" class="status">Aguardando arquivos.</div></div>
+<div id="results" hidden>
+<div class="hero"><div class="muted" style="color:#d9d6ee">IVA sugerido</div><div class="code" id="iva">—</div><div class="reason" id="description"></div></div>
+<div class="panel"><h2>Diagnóstico</h2><table><tbody id="details"></tbody></table><div id="warning"></div></div>
+<div class="panel"><h2>Itens / impostos detectados</h2><div id="items"></div></div>
+<div class="panel"><h2>Revisão opcional do Gemini</h2><div id="geminiReview" class="muted">Informe a chave da API Google para solicitar uma revisão adicional. A classificação principal segue as regras locais.</div></div><div class="panel"><h2>Texto extraído (amostra)</h2><pre id="preview" class="small"></pre></div>
+</div>
+<script>
+if(window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.10.111/pdf.worker.min.js';
+const $=id=>document.getElementById(id);
+function norm(s){return (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase();}
+function getXmlText(el,tag){const n=el.getElementsByTagNameNS('*',tag)[0]||el.getElementsByTagName(tag)[0];return n?(n.textContent||'').trim():'';}
+function num(v){if(!v)return 0;let s=String(v).trim().replace(/R\$\s*/i,'').replace(/\s/g,'');if(s.includes(',')&&s.includes('.'))s=s.replace(/\./g,'').replace(',','.');else if(s.includes(','))s=s.replace(',','.');let n=Number(s);return Number.isFinite(n)?n:0;}
+function hasIBSCBS(xmlDoc,pdfText){
+ // Estrutura XML é a evidência mais confiável; valores zero não anulam a ocorrência.
+ if(xmlDoc && (xmlDoc.getElementsByTagNameNS('*','IBSCBS').length || xmlDoc.getElementsByTagNameNS('*','gIBSCBS').length || xmlDoc.getElementsByTagNameNS('*','IBSCBSTot').length)) return true;
+ const t=norm(pdfText);
+ // No PDF, considerar seção própria de tributação, mesmo que os valores sejam zero/em branco.
+ return /TRIBUTACAO\s+IBS\s*\/\s*CBS/.test(t) || /VALOR\s+TOTAL\s+APURADO\s*-\s*IBS/.test(t) || /CST\s*\/\s*CCLASSTRIB/.test(t);
+}
+function serviceRetention(xmlDoc,pdfText){
+ // XML: campos explícitos de retenções; somente valores positivos contam como retenção efetiva.
+ const tags=['vRetPIS','vRetCOFINS','vRetCSLL','vIRRF','vRetPrev','vINSS','vRetCP','vRetCSLL','vRetIRRF'];
+ if(xmlDoc){for(const tag of tags){for(const el of xmlDoc.getElementsByTagNameNS('*',tag)){if(num(el.textContent)>0)return true;}}}
+ const t=norm(pdfText);
+ // Total de retenções positivo é evidência direta, desde que próximo ao rótulo do documento.
+ const patterns=[/(?:RETENCOES FEDERAIS)[\s\S]{0,90}?R\$?\s*([\d.]+,\d{2})/,/TOTAL DAS RETENCOES\s*\([^)]*FEDERAIS[^)]*\)[\s\S]{0,80}?R\$?\s*([\d.]+,\d{2})/,/\(-\) RETENCOES FEDERAIS[\s\S]{0,80}?([\d.]+,\d{2})/];
+ for(const re of patterns){const m=t.match(re);if(m&&num(m[1])>0)return true;}
+ // Captura valores positivos nos campos federais de NFS-e tradicionais.
+ const federalSection=t.match(/TRIBUTOS FEDERAIS[\s\S]{0,350}/)||t.match(/TRIBUTACAO FEDERAL[\s\S]{0,350}/);
+ if(federalSection){const s=federalSection[0];if(/NAO RETIDOS|NAO RETIDA|NAO RETIDO/.test(s))return false;
+   const vals=[...s.matchAll(/R\$\s*([\d.]+,\d{2})/g)].map(m=>num(m[1]));if(vals.some(v=>v>0))return true;
+   // Alguns PDFs não repetem R$ antes de cada valor.
+   const raw=[...s.matchAll(/(?:^|\s)(\d[\d.]*,\d{2})(?=\s|$)/g)].map(m=>num(m[1]));if(raw.some(v=>v>0))return true;
+ }
+ if(/PIS\/COFINS\/CSLL\s+NAO\s+RETIDOS/.test(t))return false;
+ return false;
+}
+function identifyType(pdfText,xmlText,doc){const p=norm(pdfText),x=norm(xmlText);
+ if(/\bDACTE\b|DOCUMENTO AUXILIAR DO CT[\s-]*E/.test(p+' '+x)|| (doc&&doc.getElementsByTagNameNS('*','infCte').length))return 'Frete';
+ if(/NOTA FISCAL ELETRONICA DE SERVICO|NOTA FISCAL ELETRONICA DE SERVICOS|DANFSE|DOCUMENTO AUXILIAR DA NFS-E|PRESTADOR\s*\/\s*FORNECEDOR|PRESTADOR DE SERVICOS|SERVICO PRESTADO/.test(p)|| (doc&&(doc.getElementsByTagNameNS('*','infNFSe').length||doc.getElementsByTagNameNS('*','NFS-e').length)))return 'Serviço';
+ if(/\bDANFE\b|DOCUMENTO AUXILIAR DA NOTA FISCAL ELETRONICA/.test(p+' '+x)||(doc&&(doc.getElementsByTagNameNS('*','infNFe').length||doc.getElementsByTagNameNS('*','NFe').length)))return 'Material';
+ return 'Não identificado';}
+function ivaService(ibs,ret){return ibs?(ret?'J2':'J4'):(ret?'J1':'J3');}
+function detectMaterialIVA(det,ibs){
+ const icms=det.getElementsByTagNameNS('*','ICMS')[0];const ipi=det.getElementsByTagNameNS('*','IPI')[0];const pis=det.getElementsByTagNameNS('*','PIS')[0];const cof=det.getElementsByTagNameNS('*','COFINS')[0];
+ const taxText=norm(det.textContent);const val=tag=>num(getXmlText(det,tag));
+ const st=val('vICMSST')>0||val('vST')>0||val('vICMSSTRet')>0||/ICMS60|ICMS10|ICMS30|ICMS70/.test(taxText);
+ const ipiOn=val('vIPI')>0||!!ipi;
+ const icmsOn=val('vICMS')>0||/ICMS00|ICMS20|ICMS51|ICMS90/.test(taxText);
+ const difal=val('vICMSUFDest')>0||val('vICMSUFRemet')>0;
+ let origin='C0',desc='Consumo: sem impostos';
+ if(st){origin=ipiOn?'C5':'C4';desc=ipiOn?'Consumo: ICMS + IPI + ST':'Consumo: ICMS + ST';}
+ else if(ipiOn&&icmsOn){origin='C2';desc='Consumo: ICMS + IPI';}
+ else if(icmsOn){origin='CE';desc='Consumo: ICMS';}
+ else if(difal){origin='CD';desc='Consumo: sem impostos + DIFAL';}
+ const pisCof=(pis&&/\bCST\b/.test(pis.textContent))||(cof&&/\bCST\b/.test(cof.textContent));
+ let final=origin;
+ if(ibs){const map={'C4':'CW','C5':'CO','CE':'E1','C0':'C$','CD':'C&','C1':'CG','B0':'BO','B1':'BN','B6':'BM'};final=map[origin]||origin;}
+ else if(pisCof){const map={'C0':'CZ','C2':'CM','C4':'CN','C5':'CO','CE':'CQ','CD':'CX'};final=map[origin]||origin;}
+ return {origin,final,desc,ibs};
+}
+async function readPDF(file){const data=await file.arrayBuffer();const pdf=await pdfjsLib.getDocument({data}).promise;let out='';for(let i=1;i<=pdf.numPages;i++){const page=await pdf.getPage(i);const c=await page.getTextContent();out+=c.items.map(x=>x.str).join(' ')+'\n';}return out;}
+let analysisTimer=null; async function analyze(){const files=[...$('files').files];if(!files.length){setStatus('Selecione ao menos um PDF ou XML.','error');return;}setStatus('Lendo arquivos e analisando automaticamente…','');try{
+ let pdfText='',xmlText='',xmlDoc=null;for(const f of files){const ext=f.name.toLowerCase().split('.').pop();if(ext==='pdf')pdfText+='\n'+await readPDF(f);else if(ext==='xml'){const s=await f.text();xmlText+='\n'+s;const d=new DOMParser().parseFromString(s,'application/xml');if(d.querySelector('parsererror'))throw Error('O XML selecionado é inválido.');xmlDoc=d;}}
+ const type=identifyType(pdfText,xmlText,xmlDoc);if(type==='Não identificado')throw Error('Não consegui identificar se o documento é material, serviço ou frete. Confira se selecionou o PDF/XML correto.');
+ const ibs=hasIBSCBS(xmlDoc,pdfText),ret=type==='Serviço'?serviceRetention(xmlDoc,pdfText):false;let code='',desc='',itemRows=[];
+ if(type==='Serviço'){code=ivaService(ibs,ret);desc=`Serviço ${ibs?'com':'sem'} IBS/CBS e ${ret?'com':'sem'} retenção federal.`;}
+ else if(type==='Frete'){code=ibs?'F5':'F1';desc=`Frete identificado por DACTE/CT-e; ${ibs?'com':'sem'} estrutura IBS/CBS. Confirme a regra de origem para frete.`;}
+ else if(xmlDoc){const dets=[...xmlDoc.getElementsByTagNameNS('*','det')];if(dets.length){itemRows=dets.map((d,i)=>{const product=getXmlText(d,'xProd')||`Item ${i+1}`;const v=getXmlText(d,'vProd');const r=detectMaterialIVA(d,hasIBSCBS(d, ''));return {item:i+1,product,value:v,iva:r.final,origin:r.origin,desc:r.desc,ibs:r.ibs};});const unique=[...new Set(itemRows.map(x=>x.iva))];code=unique.length===1?unique[0]:'Múltiplos';desc=unique.length===1?'IVA sugerido para os itens da nota':'A nota contém itens com IVAs diferentes; veja a classificação por item.';}else{code=ibs?'E1':'CE';desc='IVA sugerido para material; confirme os impostos do documento.';}}
+ else{code='Revisar';desc='PDF de material identificado, mas sem XML: para classificar cada item com segurança, carregue também o XML.';}
+ $('iva').textContent=code;$('description').textContent=desc;$('results').hidden=false;
+ const rows=[['Tipo de documento',type],['IBS/CBS identificado',ibs?'Sim — estrutura/campos encontrados':'Não identificado'],['Retenção federal',type==='Serviço'?(ret?'Sim':'Não'):'Não aplicável'],['Arquivos lidos',files.map(f=>f.name).join(', ')]];
+ $('details').innerHTML=rows.map(r=>`<tr><th>${esc(r[0])}</th><td>${esc(r[1])}</td></tr>`).join('');
+ if(itemRows.length){$('items').innerHTML='<table><thead><tr><th>Item</th><th>Descrição</th><th>Valor</th><th>IVA origem</th><th>IVA sugerido</th><th>IBS/CBS</th></tr></thead><tbody>'+itemRows.map(x=>`<tr><td>${x.item}</td><td>${esc(x.product)}</td><td>${esc(x.value||'—')}</td><td>${esc(x.origin)}</td><td><strong>${esc(x.iva)}</strong></td><td>${x.ibs?'Sim':'Não'}</td></tr>`).join('')+'</tbody></table>';}else $('items').innerHTML='<p>Classificação geral: '+esc(code)+'.</p>';
+ $('warning').innerHTML=type==='Material'&&!xmlDoc?'<p class="warning">Sem XML, a classificação por item não é confiável. Carregue o XML para analisar cada linha.</p>':(type==='Frete'?'<p class="warning">Regra de frete ainda exige validação com sua tabela completa de IVAs; confira antes de lançar no SAP.</p>':'');$('preview').textContent=(xmlText||pdfText).slice(0,5000)||'Nenhum texto extraído.';setStatus('Análise concluída. Confira o diagnóstico antes de usar o IVA no SAP.','success');if($('apiKey').value.trim()) await consultGemini($('apiKey').value.trim(),{type,code,desc,ibs,ret,items:itemRows,text:(xmlText||pdfText).slice(0,10000)});else $('geminiReview').textContent='Sem chave da API: análise local concluída; revisão do Gemini não solicitada.';
+ }catch(e){setStatus(e.message||'Erro ao analisar arquivo.','error');}}
+
+async function consultGemini(apiKey,context){
+ const out=$('geminiReview');out.textContent='Consultando Gemini para uma revisão adicional…';
+ const prompt='Revise a classificação fiscal sugerida, sem inventar dados. Regras de serviço: sem IBS/CBS com retenção federal=J1; sem IBS/CBS sem retenção=J3; com IBS/CBS com retenção=J2; com IBS/CBS sem retenção=J4. IBS/CBS deve ser identificado estruturalmente no XML, não apenas por valores positivos. Classificação local: '+JSON.stringify({tipo:context.type,iva:context.code,justificativa:context.desc,ibsCBS:context.ibs,retencaoFederal:context.ret,itens:context.items,textoDocumento:context.text})+'. Responda em português, brevemente: concorda ou discorda, evidências e dúvidas. Não altere a classificação automaticamente.';
+ try{const response=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='+encodeURIComponent(apiKey),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:0.1}})});const data=await response.json();if(!response.ok)throw new Error(data?.error?.message||'Falha na API Gemini.');const answer=data?.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('\n').trim();out.textContent=answer||'O Gemini não retornou uma resposta legível.';}catch(e){out.textContent='A análise local foi concluída, mas a revisão do Gemini falhou: '+e.message+' Verifique a chave, o acesso à API e a conexão.';}
+}
+
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function setStatus(s,kind){$('status').textContent=s;$('status').className='status'+(kind?' '+kind:'');}
+$('files').addEventListener('change',()=>{const fs=[...$('files').files];if(!fs.length)return;setStatus('Selecionado(s): '+fs.map(f=>f.name).join(', ')+'. Iniciando análise…','');if(analysisTimer)clearTimeout(analysisTimer);analysisTimer=setTimeout(analyze,150);});
+</script></body></html>

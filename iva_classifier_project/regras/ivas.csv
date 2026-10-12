@@ -1,0 +1,25 @@
+﻿origem;descricao_origem;destino;descricao_destino;tipo
+C0;Consumo: Sem Impostos;C$;Consumo: Sem Impostos somente CBS + IBS;ibs
+C0(CZ);Consumo: Sem Impostos;C@;Consumo: Sem Impostos + PIS/COFINS cumulativo;pis_cofins
+C1;Consumo: ICMS + compl.;C#;Consumo: ICMS + compl. + PIS/COFINS cumulativo;pis_cofins
+C1;Consumo: ICMS + compl.;CL;Consumo: ICMS + compl. + PIS/Cofins;pis_cofins
+C1;Consumo: ICMS + compl.;CG;Consumo: ICMS + compl. (IBS/CBS);ibs
+C2;Consumo: ICMS + IPI;CM;Consumo: ICMS + IPI + PIS/Cofins;pis_cofins
+C4;Consumo: ICMS + ST;CN;Consumo: ICMS + ST + PIS/Cofins;pis_cofins
+C5;Consumo: ICMS + IPI + ST;CO;Consumo: ICMS + IPI + ST + PIS/Cofins;pis_cofins
+CA;Consumo: ICMS + IPI + CompICMS;CP;Consumo: ICMS + IPI + CompICMS + PIS/Cofins não cumulativo;pis_cofins
+CA;Consumo: ICMS + IPI + CompICMS;C,;Consumo: ICMS + IPI + CompICMS + PIS/Cofins cumulativo;pis_cofins
+CC;Consumo: ICMS + DIFAL ICMS;CS;Consumo: ICMS + DIFAL ICMS + PIS/Cofins;pis_cofins
+CD;Consumo: Sem impostos + DIFAL ICMS;CX;Consumo: Sem impostos + DIFAL ICMS + PIS/COFIN;pis_cofins
+CD;Consumo: Sem impostos + DIFAL ICMS;C&;Consumo: Sem impostos + DIFAL ICMS (IBS/CBS);ibs
+CE;Consumo: ICMS;CQ;Consumo: ICMS + PIS/Cofins;pis_cofins
+CE(CQ);Consumo: ICMS;CY;Consumo: ICMS + PIS/Cofins cumulativo;pis_cofins
+CH;Consumo: ST;CT;Consumo: ST + PIS/Cofins;pis_cofins
+CI;Consumo de energia: Sem Impostos;CV;Consumo de energia: Sem Impostos + PIS/Cofins;pis_cofins
+CN(C4);Consumo: ICMS + ST;CW;Consumo: ICMS + ST (IBS/CBS);ibs
+J3;Serviços: Sem impostos;J4;Sem impostos + PIS/COFINS não cumulativo;pis_cofins
+J3;Serviços: Sem impostos;J5;Sem impostos + PIS/COFINS cumulativo;pis_cofins
+C0;Consumo: Sem Impostos;CZ;Consumo: Sem Impostos + PIS/COFINS;pis_cofins
+J1;Serviços: ISS + IRRF + CSRF;J8;Serviços: ISS + IRRF + CSRF + PIS/Cofins cumulativo;pis_cofins
+CE;Consumo: ICMS;E1;Consumo: ICMS + IBS/CBS;ibs
+J3;Serviços: Sem impostos;J6;Sem impostos + CBS/IBS;ibs

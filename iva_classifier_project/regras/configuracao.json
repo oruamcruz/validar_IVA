@@ -1,0 +1,7 @@
+{
+  "categoria_material_padrao": "consumo",
+  "revisao_gemini_automatica": true,
+  "aplicar_correcao_so_se_codigo_existir_na_tabela": true,
+  "limite_itens_para_revisao_ia": 40,
+  "observacao": "Edite este arquivo somente se souber o significado da configuração. Os mapeamentos oficiais ficam em ivas.json."
+}

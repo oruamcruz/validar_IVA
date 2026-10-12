@@ -1,0 +1,9 @@
+TABELA DE IVA - INSTRUCOES RAPIDAS
+
+1. O arquivo ATIVO que a aplicacao consulta e ivas.csv.
+2. Abra ivas.csv no Excel, mantendo o separador ponto e virgula.
+3. Preserve os nomes das colunas da primeira linha: origem;descricao_origem;destino;descricao_destino;tipo
+4. Em tipo, use 'ibs' para uma linha de mapeamento IBS/CBS ou 'pis_cofins' para a linha correspondente de PIS/Cofins.
+5. Salve como CSV UTF-8 delimitado por ponto e virgula. Antes de grandes alteracoes, copie o arquivo como backup.
+6. O arquivo IVAS-original.txt e apenas uma referencia do texto original; editar esse TXT nao altera a tabela ativa.
+7. A tabela recebida tem mapeamentos incompletos para algumas familias fiscais. Nao invente codigos: confirme com a regra oficial da empresa.
